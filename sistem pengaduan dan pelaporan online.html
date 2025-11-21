@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Pelaporan & Pengaduan — User + Admin (Demo)</title>
+
+    <!-- Bootstrap 5 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+      :root {
+        --accent: #4b5563;
+        --muted: #adb5bd;
+        --glass: rgba(255, 255, 255, 0.06);
+        --card-bg: rgba(255, 255, 255, 0.9);
+      }
+      body {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+          Roboto, Arial;
+        background: linear-gradient(180deg, #ffffff, #d1d1d2 );
+        color: #111827;
+        -webkit-font-smoothing: antialiased;
+      }
+      .navbar {
+        backdrop-filter: blur(6px);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 6px 18px rgba(12, 17, 23, 0.06);
+        position: fixed;  /* navbar di atas, menempel ke viewport */
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 10;
+      }
+      .hero {
+        margin-top: -70px;
+        top:0;
+        height: 100vh;          
+        margin: 0;
+        padding: 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: url('https://files.catbox.moe/oz8zi1.jpg') center/cover no-repeat;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content:"";
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.3); /* bisa diganti transparansi */
+        z-index: 1;
+      }
+      .hero > .container-fluid {
+        padding-left: 0;
+        padding-right: 0;
+        max-width: 100%;
+      }
+      .hero .card-hero,
+      .hero .card-soft {
+        position: relative;
+        z-index: 2;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.8),
+          rgba(255, 255, 255, 1)
+        );
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+      }
+      .btn-primary.custom {
+        background: linear-gradient(90deg, #2563eb, #4f46e5);
+        border: none;
+        box-shadow: 0 8px 22px rgba(79, 70, 229, 0.12);
+        border-radius: 12px;
+        padding: 0.5rem 0.9rem;
+      }
+      section {
+        padding: 2.6rem 0;
+      }
+      .card-soft {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid rgba(15, 23, 42, 0.3);
+        box-shadow: 0 8px 24px rgba(2, 6, 23, 0.3);
+      }
+      .news-item {
+        transition: transform 0.18s, box-shadow 0.18s;
+      }
+      .news-item:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 30px rgba(2, 6, 23, 0.5);
+      }
+      .status-step {
+        position: relative;
+        padding-left: 2.5rem;
+        margin-bottom: 0.6rem;
+      }
+      .status-step::before {
+        content: "";
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        position: absolute;
+        left: 0.6rem;
+        top: 0.4rem;
+        background: var(--muted);
+        box-shadow: 0 4px 14px rgba(2, 6, 23, 0.06);
+      }
+      .status-step.active::before {
+        background: #16a34a;
+        transform: scale(1.05);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .watermark {
+        position: absolute;
+        right: -30px;
+        bottom: 5px;
+        font-size: 78px;
+        color: rgba(128, 128, 128, 0.04);
+        transform: rotate(-12deg);
+        user-select: none;
+      }
+      .admin-badge {
+        background: #0ea5a1;
+        color: #fff;
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+      }
+      .table-responsive {
+        max-height: 520px;
+        overflow: auto;
+      }
+      .small-muted {
+        color: #6b7280;
+        font-size: 0.9rem;
+      }
+      @media (max-width: 100%) {
+        .hero {
+          padding: 1.25rem 0;
+        }
+        .watermark {
+          font-size: 48px;
+        }
+      }
+
+      /* Admin navbar style (dark) */
+      #adminNavbar .nav-link {
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        padding: 0.4rem 0.6rem;
+      }
+      #adminNavbar .nav-link.active {
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 6px;
+      }
+      #adminNavbar .navbar-brand {
+        color: #fff;
+      }
+      #adminNavbar {
+        box-shadow: 0 6px 18px rgba(2, 6, 23, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- USER NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top" id="userNavbar">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="#" data-nav="home">LaporIn</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navMenu"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navMenu">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
+            <li class="nav-item">
+              <a class="nav-link" href="#" data-nav="home">Beranda</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#" data-nav="news">Berita</a>
+            </li>
+              <a class="nav-link" href="#" data-nav="faq">FAQ</a>
+            </li>
+
+            <!-- admin nav placeholder in user navbar (kept hidden) -->
+            <li id="adminNavGroup" class="nav-item dropdown d-none">
+              <a
+                class="nav-link dropdown-toggle"
+                href="#"
+                id="adminMenuToggle"
+                role="button"
+                data-bs-toggle="dropdown"
+                >Admin</a
+              >
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <a class="dropdown-item" href="#" data-nav="adminDashboard"
+                    >Dashboard</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" data-nav="adminPengaduan"
+                    >Manajemen Pengaduan</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" data-nav="adminStat"
+                    >Laporan Statistik</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" data-nav="adminNews"
+                    >Manajemen Berita</a
+                  >
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    id="adminProfileNav"
+                    data-nav="adminProfile"
+                    >Profile</a
+                  >
+                </li>
+              </ul>
+            </li>
+
+            <li class="nav-item ms-3">
+              <button
+                class="btn btn-outline-secondary"
+                id="btnGuest"
+                data-nav="guest"
+              >
+                Guest Mode
+              </button>
+            </li>
+            <li class="nav-item ms-2">
+              <button
+                class="btn btn-primary custom"
+                id="btnLogin"
+                data-nav="login"
+              >
+                Login
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ADMIN NAVBAR (separate, shown only for admin) -->
+    <nav class="navbar navbar-dark bg-dark d-none" id="adminNavbar">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="#" data-nav="adminDashboard"
+          >Admin Panel</a
+        >
+
+        <ul class="navbar-nav flex-row gap-3 align-items-center">
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-nav="adminDashboard">Dashboard</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-nav="adminPengaduan">Pengaduan</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-nav="adminStat">Statistik</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-nav="adminNews">Berita</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-nav="adminProfile">Profile</a>
+          </li>
+
+          <li class="nav-item ms-3">
+            <button class="btn btn-danger btn-sm" id="btnAdminLogout">
+              Logout
+            </button>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <section id="home" class="hero section-active">
+        <div class="container-fluid">
+          <div class="row align-items-center">
+            <div class="col-lg-8 mb-4">
+              <div class="card-hero">
+                <h1 class="display-6 fw-bold">
+                  Sistem Pengaduan dan Pelaporan Online
+                </h1>
+                <p class="lead text-muted">
+                  Buat laporan cepat, lacak status, dan cek berita terbaru.
+                </p>
+                <br />
+
+                <div class="d-flex gap-2 mt-3">
+                  <button
+                    class="btn btn-primary custom"
+                    id="laporNow"
+                    data-nav="form"
+                  >
+                    LAPOR
+                  </button>
+                  <button
+                    class="btn btn-outline-secondary"
+                    data-nav="track"
+                    id="trackNow"
+                  >
+                    Lacak Status
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4">
+              <div class="card-soft p-3 h-100">
+                <h5 class="mb-3">Berita Terbaru</h5>
+                <div id="newsPreview" class="list-group list-group-flush">
+                  <!-- injected -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    <!-- MAIN -->
+    <main class="container my-4">
+      <!-- HOME -->
+      
+
+      <!-- NEWS -->
+      <section id="news" class="d-none">
+        <div class="container">
+          <div class=" d-flex justify-content-center mb-3">
+         
+            <h3 style="margin-top: 2vh;">BERITA</h3>
+          </div>
+
+          <div
+            class="container mb-3 row-lg-10 justify-content-center"
+            id="newsList"
+          >
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TRACK -->
+      <section id="track" class="d-flex">
+        <div class="container">
+          <h3>Lacak Status</h3>
+          <p class="muted">
+            Masukkan kode/ID laporan untuk melacak status.
+          </p>
+          <div class="container">
+            <div class="row g-3">
+              <div class="col-lg-7">
+                <div class="card-soft">
+                  <h6>Laporanmu</h6>
+                  <div id="statusSummary"></div>
+                </div>
+              </div>
+              <div class="col-lg-5">
+                <div class="card-soft">
+                  <h6>Catatan</h6>
+                  <div id="" class="muted">Tidak ada catatan.</div>
+                </div>
+              </div>
+
+              <div class="col-lg-12">
+                <div class="card-soft">
+                  <h6>Status Laporan</h6>
+                  <div id="statusTimeline" class="mt-2">
+                    <div class="status-step">Terkirim</div>
+                    <div class="status-step">Diterima</div>
+                    <div class="status-step">Dalam Proses</div>
+                    <div class="status-step">Selesai</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-5 col-lg-6">
+                <div class="card-soft">
+                  <label for="trackCode" class="form-label"
+                    >Masukkan kode/ID Laporan</label
+                  >
+                  <input
+                    id="trackCode"
+                    class="form-control"
+                    placeholder="e.g. LAP-2025-0001"
+                  />
+                  <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-primary custom" id="btnCheck">
+                      Lacak
+                    </button>
+                    <button
+                      class="btn btn-outline-secondary"
+                      id="btnClearTrack"
+                    >
+                      Bersihkan
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FORM -->
+      <section id="form" class="d-none">
+        <div class="container">
+          <h3>Formulir Laporan</h3>
+          <p class="muted">Isi data berikut untuk mengajukan laporan.</p>
+
+          <div class="card-soft">
+            <form id="reportForm" class="row g-3">
+              <div class="col-md-4 form-floating">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="inpName"
+                  placeholder="Nama lengkap"
+                  required
+                />
+                <label for="inpName">Nama</label>
+              </div>
+              <div class="col-md-4 form-floating">
+                <input
+                  type="email"
+                  class="form-control"
+                  id="inpEmail"
+                  placeholder="email@example.com"
+                  required
+                />
+                <label for="inpEmail">E-mail</label>
+              </div>
+              <div class="col-md-4 form-floating">
+                <input
+                  type="tel"
+                  class="form-control"
+                  id="inpPhone"
+                  placeholder="08xxxxxxxxxx"
+                  required
+                />
+                <label for="inpPhone">Nomor Telepon</label>
+              </div>
+
+              <div class="col-12 form-floating">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="inpTitle"
+                  placeholder="Title laporan"
+                  required
+                />
+                <label for="inpTitle">Judul</label>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">Kategori</label>
+                <select id="inpCategory" class="form-select" required>
+                  <option value="">Pilih kategori...</option>
+                  <option>Infrastruktur</option>
+                  <option>Kebersihan</option>
+                  <option>Keamanan</option>
+                  <option>Lainnya</option>
+                </select>
+              </div>
+
+              <div class="col-12 form-floating">
+                <textarea
+                  id="inpDesc"
+                  class="form-control"
+                  placeholder="Deskripsi singkat..."
+                  style="height: 120px"
+                  required
+                ></textarea>
+                <label for="inpDesc">Deskripsi Laporan</label>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Lokasi/Alamat</label>
+                <input
+                  id="inpLocation"
+                  class="form-control"
+                  placeholder="Alamat lengkap"
+                />
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Foto/Video</label>
+                <input
+                  class="form-control"
+                  type="file"
+                  id="inpFiles"
+                  accept="image/*,video/*"
+                />
+                <div class="form-text">
+                  Maks 50MB. Format: JPG, PNG, MP4.
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    value=""
+                    id="verifyCheckbox"
+                    required
+                  />
+                  <label class="form-check-label" for="verifyCheckbox"
+                    >Saya menyatakan data ini benar dan bisa dipertanggunjawabkan</label
+                  >
+                </div>
+              </div>
+
+              <div class="col-12 d-flex gap-2">
+                <button class="btn btn-primary custom" type="submit">
+                  Kirim
+                </button>
+                <button class="btn btn-outline-secondary" type="reset">
+                  Bersihkan
+                </button>
+              </div>
+
+              <div class="col-12 mt-3" id="formResult"></div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- LOGIN / REGISTER -->
+      <section id="login">
+        <div class="d-flex justify-content-center">
+          <div class="col-md-5">
+            <div class="card-soft">
+              <h5>Login</h5>
+              <form id="loginForm" class="mt-3">
+                <div class="mb-3">
+                  <label class="form-label">E-mail</label>
+                  <input
+                    class="form-control"
+                    id="loginEmail"
+                    type="email"
+                    placeholder="email@example.com"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Password</label>
+                  <input
+                    class="form-control"
+                    id="loginPass"
+                    type="password"
+                    placeholder="Password"
+                    required
+                  />
+                </div>
+                <button class="btn btn-primary custom" type="submit">
+                  Login
+                </button>
+                <div class="mt-3 small-muted">
+                  Belum punya akun? <a href="#" id="gotoRegister">Sign Up</a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="regist" class="d-flex justify-content-center">
+        <div class="col-md-7">
+          <div class="card-soft">
+            <h5>Sign Up</h5>
+            <form id="registerForm" class="mt-3 row g-3">
+              <div class="col-md-6 form-floating">
+                <input
+                  class="form-control"
+                  id="regName"
+                  placeholder="Nama"
+                  required
+                />
+                <label for="regName">Nama</label>
+              </div>
+              <div class="col-md-6 form-floating">
+                <input
+                  class="form-control"
+                  id="regEmail"
+                  placeholder="email"
+                  type="email"
+                  required
+                />
+                <label for="regEmail">E-mail</label>
+              </div>
+              <div class="col-md-6 form-floating">
+                <input
+                  class="form-control"
+                  id="regPass"
+                  placeholder="Password"
+                  type="password"
+                  required
+                />
+                <label for="regPass">Password</label>
+              </div>
+              <div class="col-md-6 form-floating">
+                <input
+                  class="form-control"
+                  id="regDob"
+                  placeholder="dd-mm-yyyy"
+                  type="text"
+                />
+                <label for="regDob">Date birth</label>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-primary custom" type="submit">
+                  Sign Up
+                </button>
+              </div>
+            </form>
+            <div class="mt-2 muted small">
+              Atau teruskan sebagai tamu dengan Guest Mode.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq" class="d-none">
+        <div class="container">
+          <h3>FAQ</h3>
+          <div class="row">
+            <div class="col-md-7">
+              <div class="accordion" id="faqAcc">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="faqOne">
+                    <button
+                      class="accordion-button collapsed"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapseOne"
+                    >
+                      Bagaimana cara melaporkan?
+                    </button>
+                  </h2>
+                  <div
+                    id="collapseOne"
+                    class="accordion-collapse collapse"
+                    data-bs-parent="#faqAcc"
+                  >
+                    <div class="accordion-body">
+                      Isi Formulir Lapor, lampirkan foto/video, lalu kirim. Jangan lupa untuk menyimpan
+                      kode laporan.
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="faqTwo">
+                    <button
+                      class="accordion-button collapsed"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapseTwo"
+                    >
+                      Bagaimana cara melacak status laporan?
+                    </button>
+                  </h2>
+                  <div
+                    id="collapseTwo"
+                    class="accordion-collapse collapse"
+                    data-bs-parent="#faqAcc"
+                  >
+                    <div class="accordion-body">
+                      Pergi ke Lacak Status, masukkan kode laporan yang
+                      diberikan setelah mengirim laporan.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-5">
+              <div class="card-soft">
+                <h6>Kontak</h6>
+                <div class="muted small">
+                  gema@gmail.com 
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ------------------ ADMIN SECTIONS ------------------ -->
+      <!-- Admin Dashboard -->
+      <section id="adminDashboard" class="d-none">
+        <div class="container">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Admin Dashboard <span class="admin-badge">ADMIN</span></h3>
+            <div class="small-muted">
+              <b>Selamat Datang, <span id="adminNamePlace">Admin</span></b>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="card-soft text-center">
+                <h6>Manajemen Pengaduan</h6>
+                <p class="small-muted">Lihat & kelola semua laporan</p>
+                <button
+                  class="btn btn-outline-primary"
+                  data-nav="adminPengaduan"
+                >
+                  Buka
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card-soft text-center">
+                <h6>Laporan Statistik</h6>
+                <p class="small-muted">Grafik & ringkasan</p>
+                <button class="btn btn-outline-primary" data-nav="adminStat">
+                  Buka
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card-soft text-center">
+                <h6>Manajemen Berita</h6>
+                <p class="small-muted">Tambah / Hapus berita</p>
+                <button class="btn btn-outline-primary" data-nav="adminNews">
+                  Buka
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Admin Pengaduan -->
+      <section id="adminPengaduan" class="d-none">
+        <div class="container">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Manajemen Pengaduan</h3>
+            <div>
+              <select id="filterCategory" class="form-select form-select-sm">
+                <option value="">Filter: Semua Kategori</option>
+                <option>Infrastruktur</option>
+                <option>Kebersihan</option>
+                <option>Keamanan</option>
+                <option>Lainnya</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card-soft">
+            <div class="table-responsive">
+              <table
+                class="table table-hover align-middle"
+                id="complaintsTable"
+              >
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Kategori</th>
+                    <th>Nama</th>
+                    <th>Kontak</th>
+                    <th>Tanggal</th>
+                    <th>Deskripsi</th>
+                    <th>Status</th>
+                    <th>Respons</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- injected -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Admin Statistik -->
+      <section id="adminStat" class="d-none">
+        <div class="container">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Laporan Statistik</h3>
+            <div class="small-muted">Ringkasan & Analisis</div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="card-soft text-center">
+                <h5 id="statTotal">0</h5>
+                <div class="small-muted">Total Laporan</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card-soft text-center">
+                <h5 id="statProcessed">0</h5>
+                <div class="small-muted">Sedang diproses</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card-soft text-center">
+                <h5 id="statFinished">0</h5>
+                <div class="small-muted">Selesai</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-3">
+            <div class="col-md-6">
+              <div class="card-soft">
+                <h6>Grafik: Status</h6>
+                <canvas id="chartStatus" width="400" height="250"></canvas>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card-soft">
+                <h6>Grafik: Kategori</h6>
+                <canvas id="chartCategory" width="400" height="250"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Admin News -->
+      <section id="adminNews" class="d-none">
+        <div class="container">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Manajemen Berita</h3>
+            <button class="btn btn-primary custom" id="btnAddNews">
+              Tambah Berita
+            </button>
+          </div>
+
+          <div id="adminNewsList" class="row g-3">
+            <!-- injected -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Admin Profile -->
+      <section id="adminProfile" class="d-none">
+        <div class="container">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="card-soft text-center">
+                <img
+                  id="adminAvatar"
+                  src=""
+                  alt="avatar"
+                  class="rounded-circle mb-3"
+                  style="
+                    width: 120px;
+                    height: 120px;
+                    object-fit: cover;
+                    background: #e9ecef;
+                  "
+                />
+                <div class="d-grid gap-2">
+                  <input
+                    type="file"
+                    id="avatarInput"
+                    accept="image/*"
+                    class="form-control form-control-sm"
+                  />
+                  <button class="btn btn-outline-danger" id="btnLogout">
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-8">
+              <div class="card-soft">
+                <h5>Profile</h5>
+                <div class="mt-2">
+                  <div><strong id="adminFullName">Admin</strong></div>
+                  <div class="small-muted" id="adminEmailPlace">
+                    admin@admin.com
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="mt-5 pb-4" id="siteFooter">
+        <div class="container justify-content-center text-dark">
+            <div class="col-md-8">
+              <p><small> © 2025 Gema Riski. All rights reserved.</small></p> 
+            </div>
+        </div>
+      </footer>
+    </main>
+
+    <!-- Modals -->
+    <div class="modal fade" id="responseModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Respons / Perbarui Status</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="responseForm">
+              <input type="hidden" id="respId" />
+              <div class="mb-3">
+                <label class="form-label">Status</label>
+                <select id="respStatus" class="form-select">
+                  <option>Submitted</option>
+                  <option>Accepted</option>
+                  <option>In Process</option>
+                  <option>Finished</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Respons</label>
+                <textarea
+                  id="respText"
+                  class="form-control"
+                  rows="4"
+                ></textarea>
+              </div>
+              <div class="text-end">
+                <button class="btn btn-primary custom" type="submit">
+                  Simpan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      const statusMap = {
+        Submitted: 25,
+        Accepted: 50,
+        "In Process": 75,
+        Finished: 100,
+      };
+
+      function updateProgress(status) {
+        const progressBar = document.getElementById("progressBar");
+        const persen = statusMap[status] || 0;
+
+        progressBar.style.width = persen + "%";
+        progressBar.setAttribute("aria-valuenow", persen);
+        progressBar.textContent = status; // <-- teks muncul sesuai status
+      }
+
+      (function () {
+        // ---------- Utilities ----------
+        const sections = [
+          "home",
+          "news",
+          "track",
+          "form",
+          "login",
+          "regist",
+          "faq",
+          "adminDashboard",
+          "adminPengaduan",
+          "adminStat",
+          "adminNews",
+          "adminProfile",
+        ];
+        function showSection(id) {
+          sections.forEach((s) => {
+            const el = document.getElementById(s);
+            if (!el) return;
+            if (s === id) {
+              el.classList.remove("d-none");
+              el.classList.add("section-active");
+              el.scrollIntoView({ behavior: "smooth", block: "start" });
+            } else {
+              el.classList.add("d-none");
+              el.classList.remove("section-active");
+            }
+          });
+          // nav active
+          document
+            .querySelectorAll("[data-nav]")
+            .forEach((a) => a.classList.toggle("active", a.dataset.nav === id));
+          // admin navbar highlight
+          document
+            .querySelectorAll("#adminNavbar [data-nav]")
+            .forEach((a) => a.classList.toggle("active", a.dataset.nav === id));
+        }
+
+        // ---------- Data (localStorage demo) ----------
+        function seedData() {
+          if (!localStorage.getItem("news")) {
+            const sampleNews = [
+              {
+                id: 1,
+                title: "Pelayanan Baru Dibuka",
+                excerpt: "Pelayanan pelaporan online kini lebih cepat",
+                date: "21-11-2025",
+                content: "Detail...",
+              },
+              {
+                id: 2,
+                title: "Pembersihan Area X",
+                excerpt: "Jadwal pembersihan minggu ini",
+                date: "20-11-2025",
+                content: "Detail...",
+              },
+              {
+                id: 3,
+                title: "Pembaruan Sistem",
+                excerpt: "Perbaikan kecil pada modul track status",
+                date: "18-11-2025",
+                content: "Detail...",
+              },
+            ];
+            localStorage.setItem("news", JSON.stringify(sampleNews));
+          }
+          if (!localStorage.getItem("complaints")) {
+            const sampleComplaints = [
+              {
+                id: "LAP-123456",
+                category: "Infrastruktur",
+                name: "Budi",
+                contact: "0812xxxx",
+                date: "20-11-2025",
+                desc: "Jalan rusak di Jl. A",
+                status: "In Process",
+                response: "",
+              },
+              {
+                id: "LAP-654321",
+                category: "Kebersihan",
+                name: "Siti",
+                contact: "0813xxxx",
+                date: "19-11-2025",
+                desc: "Sampah menumpuk",
+                status: "Submitted",
+                response: "",
+              },
+            ];
+            localStorage.setItem(
+              "complaints",
+              JSON.stringify(sampleComplaints)
+            );
+          }
+          if (!localStorage.getItem("users")) {
+            const users = {
+              "admin@admin.com": {
+                name: "Admin",
+                email: "admin@admin.com",
+                pass: "admin123",
+                isAdmin: true,
+              },
+            };
+            localStorage.setItem("users", JSON.stringify(users));
+          }
+        }
+        seedData();
+
+        // ---------- SPA nav init ----------
+        document.querySelectorAll("[data-nav]").forEach((btn) => {
+          btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            const id = btn.dataset.nav;
+            if (id === "guest") {
+              showSection("track");
+              localStorage.setItem("guestMode", "1");
+              return;
+            }
+            showSection(id);
+          });
+        });
+
+        // default show home
+        showSection("home");
+
+        // ---------- Role view mode function (final) ----------
+        function applyRoleViewMode() {
+          const cur = JSON.parse(
+            sessionStorage.getItem("currentUser") || "null"
+          );
+          const isAdmin = cur?.isAdmin === true;
+
+          const userSections = [
+            "home",
+            "news",
+            "track",
+            "form",
+            "faq",
+            "login",
+            "regist",
+          ];
+          const adminSections = [
+            "adminDashboard",
+            "adminPengaduan",
+            "adminStat",
+            "adminNews",
+            "adminProfile",
+          ];
+
+          const userNav = document.getElementById("userNavbar");
+          const adminNav = document.getElementById("adminNavbar");
+          const footer = document.getElementById("siteFooter");
+
+          if (isAdmin) {
+            // Hide ALL user sections
+            userSections.forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.classList.add("d-none");
+            });
+
+            // Hide user NAVBAR + FOOTER
+            if (userNav) userNav.classList.add("d-none");
+            if (footer) footer.classList.add("d-none");
+
+            // Show admin NAVBAR only
+            if (adminNav) adminNav.classList.remove("d-none");
+
+            // Hide all admin sections first (we'll show only dashboard)
+            adminSections.forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.classList.add("d-none");
+            });
+
+            // Show dashboard
+            showSection("adminDashboard");
+          } else {
+            // User mode -> show normal user UI
+            userSections.forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.classList.remove("d-none");
+            });
+
+            // Show user NAVBAR + FOOTER
+            if (userNav) userNav.classList.remove("d-none");
+            if (footer) footer.classList.remove("d-none");
+
+            // Hide admin sections & navbar
+            adminSections.forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) el.classList.add("d-none");
+            });
+            if (adminNav) adminNav.classList.add("d-none");
+
+            // Default user home
+            showSection("home");
+          }
+        }
+
+        // ---------- News rendering ----------
+        function renderNews() {
+          const news = JSON.parse(localStorage.getItem("news") || "[]");
+          const newsList = document.getElementById("newsList");
+          newsList.innerHTML = "";
+          const newsPreview = document.getElementById("newsPreview");
+          newsPreview.innerHTML = "";
+          news.forEach((n, i) => {
+            const col = document.createElement("div");
+            col.className = "col-md-4 col-lg-12 mb-2";
+            col.innerHTML = `<div class="news-item card-soft h-100"><h6>${n.title}</h6><div class="muted small">${n.date}</div><p class="mt-2">${n.excerpt}</p></div>`;
+            newsList.appendChild(col);
+            const item = document.createElement("div");
+            item.className = "list-group-item";
+            item.innerHTML = `<div class="d-flex justify-content-between"><div><strong>${n.title}</strong><div class="muted small">${n.date}</div></div></div>`;
+            newsPreview.appendChild(item);
+          });
+        }
+        renderNews();
+
+        // ---------- Report form ----------
+        const reportForm = document.getElementById("reportForm");
+        reportForm.addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          const name = document.getElementById("inpName").value.trim();
+          const title = document.getElementById("inpTitle").value.trim();
+          const email = document.getElementById("inpEmail").value.trim();
+          const phone = document.getElementById("inpPhone").value.trim();
+          const cat = document.getElementById("inpCategory").value;
+          const desc = document.getElementById("inpDesc").value.trim();
+          const loc = document.getElementById("inpLocation").value.trim();
+          const id = "LAP-" + Date.now().toString().slice(-6);
+          const complaints = JSON.parse(
+            localStorage.getItem("complaints") || "[]"
+          );
+          complaints.unshift({
+            id,
+            category: cat,
+            name,
+            contact: phone || email,
+            date: new Date().toLocaleDateString("en-GB"),
+            desc,
+            status: "Submitted",
+            response: "",
+          });
+          localStorage.setItem("complaints", JSON.stringify(complaints));
+          document.getElementById(
+            "formResult"
+          ).innerHTML = `<div class="alert alert-success">Terima kasih <strong>${name}</strong>. Kode laporan: <strong>${id}</strong></div>`;
+          reportForm.reset();
+          renderComplaintsTable();
+          updateStat();
+        });
+
+        // ---------- Track status ----------
+        document
+          .getElementById("btnCheck")
+          .addEventListener("click", function () {
+            const code = document.getElementById("trackCode").value.trim();
+            const sum = document.getElementById("statusSummary");
+            const timeline = document.getElementById("statusTimeline");
+            if (!code) {
+              sum.innerText = "Masukkan kode laporan.";
+              return;
+            }
+            const complaints = JSON.parse(
+              localStorage.getItem("complaints") || "[]"
+            );
+            const found = complaints.find((c) => c.id === code);
+            if (found) {
+              sum.innerHTML = `<small>${found.title || found.desc}</small>`;
+              const states = [
+                "Submitted",
+                "Accepted",
+                "In Process",
+                "Finished",
+              ];
+              timeline.innerHTML = "";
+              states.forEach((s, idx) => {
+                const div = document.createElement("div");
+                div.className =
+                  "status-step" +
+                  (["Submitted", "Accepted", "In Process", "Finished"].indexOf(
+                    found.status
+                  ) >= idx
+                    ? " active"
+                    : "");
+                div.innerText = s;
+                timeline.appendChild(div);
+              });
+            } else {
+              sum.innerHTML = `<div class="text-warning">Tidak ditemukan (demo). Coba: <strong>LAP-123456</strong></div>`;
+              timeline.innerHTML =
+                '<div class="muted">Tidak ada timeline untuk kode tersebut.</div>';
+            }
+          });
+
+        document
+          .getElementById("btnClearTrack")
+          .addEventListener("click", function () {
+            document.getElementById("trackCode").value = "";
+            document.getElementById("statusSummary").innerText =
+              "Tidak ada permintaan yang diperiksa.";
+            document.getElementById("statusTimeline").innerHTML =
+              '<div class="status-step">Submitted</div><div class="status-step">Accepted</div><div class="status-step">In Process</div><div class="status-step">Finished</div>';
+          });
+
+        // ---------- Auth (login/register) ----------
+        function getUsers() {
+          return JSON.parse(localStorage.getItem("users") || "{}");
+        }
+        function setUsers(u) {
+          localStorage.setItem("users", JSON.stringify(u));
+        }
+
+        const loginForm = document.getElementById("loginForm");
+        loginForm.addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          const email = document
+            .getElementById("loginEmail")
+            .value.trim()
+            .toLowerCase();
+          const pass = document.getElementById("loginPass").value;
+          const users = getUsers();
+          if (users[email] && users[email].pass === pass) {
+            const isAdmin =
+              email.endsWith("@admin.com") || users[email].isAdmin;
+            sessionStorage.setItem(
+              "currentUser",
+              JSON.stringify({ email, name: users[email].name, isAdmin })
+            );
+            alert("Login sukses. Selamat datang, " + users[email].name);
+            afterLogin();
+            applyRoleViewMode();
+            showSection(isAdmin ? "adminDashboard" : "home");
+            if (isAdmin) {
+              renderComplaintsTable();
+              renderAdminNews();
+              updateStat();
+            }
+          } else {
+            alert(
+              "Login gagal. Periksa email & password. Jika belum register, silakan daftar."
+            );
+          }
+        });
+
+        const registerForm = document.getElementById("registerForm");
+        registerForm.addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          const name = document.getElementById("regName").value.trim();
+          const email = document
+            .getElementById("regEmail")
+            .value.trim()
+            .toLowerCase();
+          const pass = document.getElementById("regPass").value;
+          const users = getUsers();
+          if (users[email]) {
+            alert("Email sudah terdaftar.");
+            return;
+          }
+          users[email] = {
+            name,
+            email,
+            pass,
+            isAdmin: email.endsWith("@admin.com"),
+          }; // if register with @admin.com -> admin
+          setUsers(users);
+          alert("Register sukses. Silakan login.");
+          showSection("login");
+        });
+
+        document
+          .getElementById("gotoRegister")
+          .addEventListener("click", function (e) {
+            e.preventDefault();
+            showSection("regist");
+            document
+              .getElementById("registerForm")
+              .scrollIntoView({ behavior: "smooth", block: "center" });
+          });
+
+        // ---------- After login UI changes ----------
+        function afterLogin() {
+          const cur = JSON.parse(
+            sessionStorage.getItem("currentUser") || "null"
+          );
+          const adminNav = document.getElementById("adminNavGroup");
+          if (cur && cur.isAdmin) {
+            if (adminNav) adminNav.classList.remove("d-none");
+            document.getElementById("adminNamePlace").innerText =
+              cur.name || cur.email;
+            document.getElementById("adminFullName").innerText =
+              cur.name || cur.email;
+            document.getElementById("adminEmailPlace").innerText = cur.email;
+            document.getElementById("adminProfileNav").dataset.nav =
+              "adminProfile";
+          } else {
+            if (adminNav) adminNav.classList.add("d-none");
+          }
+        }
+
+        // restore existing session on load
+        (function restoreSession() {
+          const cur = JSON.parse(
+            sessionStorage.getItem("currentUser") || "null"
+          );
+          if (cur) {
+            afterLogin();
+            applyRoleViewMode();
+            if (cur.isAdmin) {
+              renderComplaintsTable();
+              renderAdminNews();
+              updateStat();
+            }
+          }
+        })();
+
+        // ---------- Admin: Complaints table ----------
+        function renderComplaintsTable(filterCat = "") {
+          const tbody = document.querySelector("#complaintsTable tbody");
+          const complaints = JSON.parse(
+            localStorage.getItem("complaints") || "[]"
+          );
+          tbody.innerHTML = "";
+          const filtered = filterCat
+            ? complaints.filter((c) => c.category === filterCat)
+            : complaints;
+          filtered.forEach((c) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+          <td>${c.id}</td>
+          <td>${c.category}</td>
+          <td>${c.name}</td>
+          <td>${c.contact}</td>
+          <td>${c.date}</td>
+          <td style="max-width:240px"><div class="small-muted">${escapeHtml(
+            c.desc
+          )}</div></td>
+          <td>
+            <select class="form-select form-select-sm status-select" data-id="${
+              c.id
+            }">
+              <option ${
+                c.status === "Submitted" ? "selected" : ""
+              }>Submitted</option>
+              <option ${
+                c.status === "Accepted" ? "selected" : ""
+              }>Accepted</option>
+              <option ${
+                c.status === "In Process" ? "selected" : ""
+              }>In Process</option>
+              <option ${
+                c.status === "Finished" ? "selected" : ""
+              }>Finished</option>
+            </select>
+          </td>
+          <td><button class="btn btn-sm btn-outline-primary btn-respond" data-id="${
+            c.id
+          }">Respons</button></td>
+        `;
+            tbody.appendChild(tr);
+          });
+
+          // hooks
+          document.querySelectorAll(".status-select").forEach((sel) => {
+            sel.addEventListener("change", function () {
+              const id = this.dataset.id;
+              const complaints = JSON.parse(
+                localStorage.getItem("complaints") || "[]"
+              );
+              const idx = complaints.findIndex((x) => x.id === id);
+              if (idx >= 0) {
+                complaints[idx].status = this.value;
+                localStorage.setItem("complaints", JSON.stringify(complaints));
+                updateStat();
+                alert("Status updated (demo)");
+                renderComplaintsTable(filterCat);
+              }
+            });
+          });
+
+          document.querySelectorAll(".btn-respond").forEach((btn) => {
+            btn.addEventListener("click", function () {
+              const id = this.dataset.id;
+              const complaints = JSON.parse(
+                localStorage.getItem("complaints") || "[]"
+              );
+              const item = complaints.find((x) => x.id === id);
+              if (item) {
+                document.getElementById("respId").value = item.id;
+                document.getElementById("respStatus").value = item.status;
+                document.getElementById("respText").value = item.response || "";
+                const modal = new bootstrap.Modal(
+                  document.getElementById("responseModal")
+                );
+                modal.show();
+              }
+            });
+          });
+        }
+
+        document
+          .getElementById("filterCategory")
+          .addEventListener("change", function () {
+            renderComplaintsTable(this.value);
+          });
+
+        // response modal form
+        document
+          .getElementById("responseForm")
+          .addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            const id = document.getElementById("respId").value;
+            const status = document.getElementById("respStatus").value;
+            const text = document.getElementById("respText").value;
+            const complaints = JSON.parse(
+              localStorage.getItem("complaints") || "[]"
+            );
+            const idx = complaints.findIndex((x) => x.id === id);
+            if (idx >= 0) {
+              complaints[idx].status = status;
+              complaints[idx].response = text;
+              localStorage.setItem("complaints", JSON.stringify(complaints));
+              updateStat();
+              renderComplaintsTable();
+              bootstrap.Modal.getInstance(
+                document.getElementById("responseModal")
+              ).hide();
+            }
+          });
+
+        // ---------- Admin News management ----------
+        function renderAdminNews() {
+          const list = JSON.parse(localStorage.getItem("news") || "[]");
+          const root = document.getElementById("adminNewsList");
+          root.innerHTML = "";
+          list.forEach((n) => {
+            const col = document.createElement("div");
+            col.className = "col-md-4";
+            col.innerHTML = `<div class="card-soft"><div class="d-flex justify-content-between align-items-start"><div><h6>${n.title}</h6><div class="muted small">${n.date}</div></div><div><button class="btn btn-sm btn-danger btn-remove-news" data-id="${n.id}">Remove</button></div></div><p class="mt-2">${n.excerpt}</p></div>`;
+            root.appendChild(col);
+          });
+          document.querySelectorAll(".btn-remove-news").forEach((b) => {
+            b.addEventListener("click", function () {
+              const id = Number(this.dataset.id);
+              let arr = JSON.parse(localStorage.getItem("news") || "[]");
+              arr = arr.filter((x) => x.id !== id);
+              localStorage.setItem("news", JSON.stringify(arr));
+              renderAdminNews();
+              renderNews();
+            });
+          });
+        }
+        renderAdminNews();
+
+        document
+          .getElementById("btnAddNews")
+          .addEventListener("click", function () {
+            const title = prompt("Judul berita:");
+            if (!title) return;
+            const excerpt = prompt("Ringkasan / excerpt:") || "";
+            const news = JSON.parse(localStorage.getItem("news") || "[]");
+            const id = news.length ? Math.max(...news.map((n) => n.id)) + 1 : 1;
+            news.unshift({
+              id,
+              title,
+              excerpt,
+              date: new Date().toLocaleDateString("en-GB"),
+              content: excerpt,
+            });
+            localStorage.setItem("news", JSON.stringify(news));
+            renderAdminNews();
+            renderNews();
+          });
+
+        // ---------- Admin Profile ----------
+        const avatarInput = document.getElementById("avatarInput");
+        avatarInput.addEventListener("change", function () {
+          const f = this.files[0];
+          if (!f) return;
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const src = e.target.result;
+            document.getElementById("adminAvatar").src = src;
+            sessionStorage.setItem("adminAvatar", src);
+          };
+          reader.readAsDataURL(f);
+        });
+        // restore avatar if any
+        if (sessionStorage.getItem("adminAvatar"))
+          document.getElementById("adminAvatar").src =
+            sessionStorage.getItem("adminAvatar");
+
+        // admin logout (navbar)
+        document
+          .getElementById("btnAdminLogout")
+          .addEventListener("click", function () {
+            sessionStorage.removeItem("currentUser");
+            alert("Logout admin sukses.");
+            applyRoleViewMode();
+          });
+
+        // logout button inside profile (also works)
+        document
+          .getElementById("btnLogout")
+          .addEventListener("click", function () {
+            sessionStorage.removeItem("currentUser");
+            alert("Logout sukses.");
+            applyRoleViewMode();
+            showSection("home");
+          });
+
+        // ---------- Admin Stats (Chart.js) ----------
+        let chartStatus = null,
+          chartCategory = null;
+        function updateStat() {
+          const complaints = JSON.parse(
+            localStorage.getItem("complaints") || "[]"
+          );
+          const total = complaints.length;
+          const processed = complaints.filter(
+            (c) => c.status === "In Process" || c.status === "Accepted"
+          ).length;
+          const finished = complaints.filter(
+            (c) => c.status === "Finished"
+          ).length;
+          document.getElementById("statTotal").innerText = total;
+          document.getElementById("statProcessed").innerText = processed;
+          document.getElementById("statFinished").innerText = finished;
+
+          const statusLabels = [
+            "Submitted",
+            "Accepted",
+            "In Process",
+            "Finished",
+          ];
+          const statusCounts = statusLabels.map(
+            (s) => complaints.filter((c) => c.status === s).length
+          );
+
+          const cats = [
+            ...new Set(complaints.map((c) => c.category || "Lainnya")),
+          ];
+          const catCounts = cats.map(
+            (cat) => complaints.filter((c) => c.category === cat).length
+          );
+
+          const ctx = document.getElementById("chartStatus");
+          const ctx2 = document.getElementById("chartCategory");
+
+          if (chartStatus) chartStatus.destroy();
+          chartStatus = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+              labels: statusLabels,
+              datasets: [
+                {
+                  data: statusCounts,
+                  backgroundColor: ["#60a5fa", "#34d399", "#f59e0b", "#10b981"],
+                },
+              ],
+            },
+            options: { plugins: { legend: { position: "bottom" } } },
+          });
+
+          if (chartCategory) chartCategory.destroy();
+          chartCategory = new Chart(ctx2, {
+            type: "bar",
+            data: {
+              labels: cats,
+              datasets: [{ label: "By Category", data: catCounts }],
+            },
+            options: { scales: { y: { beginAtZero: true } } },
+          });
+        }
+        updateStat();
+
+        // ---------- render complaints table on admin view show ----------
+        function escapeHtml(text) {
+          if (!text) return "";
+          return text.replace(/[&<>"']/g, function (m) {
+            return {
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[m];
+          });
+        }
+
+        // when show admin sections, refresh data
+        document.querySelectorAll("[data-nav]").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            setTimeout(() => {
+              renderComplaintsTable(
+                document.getElementById("filterCategory")?.value || ""
+              );
+              renderAdminNews();
+              updateStat();
+            }, 160);
+          });
+        });
+
+        // helper buttons
+        document.getElementById("laporNow").addEventListener("click", (e) => {
+          e.preventDefault();
+          showSection("form");
+        });
+        document.getElementById("trackNow").addEventListener("click", (e) => {
+          e.preventDefault();
+          showSection("track");
+        });
+
+        // initial render for admin if logged in
+        if (
+          JSON.parse(sessionStorage.getItem("currentUser") || "null")?.isAdmin
+        ) {
+          afterLogin();
+          applyRoleViewMode();
+          renderComplaintsTable();
+          renderAdminNews();
+          updateStat();
+        }
+
+        // util exposure
+        window.renderNews = renderNews;
+      })();
+    </script>
+  </body>
+</html>
